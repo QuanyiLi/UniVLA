@@ -34,12 +34,12 @@ RUN_ROOT=/work/vita/lanfeng/vlas/exp_results/univla_finetune
 # === Training Hyperparameters ===
 BATCH_SIZE=4
 GRAD_ACCUM=2
-MAX_STEPS=20000
+MAX_STEPS=40000
 SAVE_STEPS=4000
 LEARNING_RATE=3.5e-4
 WINDOW_SIZE=20               # 20 frames @ 20Hz = 1s action chunk
 DATASET_NAME=wiser_panda     # Mixture name in mixtures.py
-LORA_RANK=32
+LORA_RANK=64
 
 # === Distributed Setup ===
 export MASTER_ADDR=$(scontrol show hostnames $SLURM_JOB_NODELIST | head -n 1)
