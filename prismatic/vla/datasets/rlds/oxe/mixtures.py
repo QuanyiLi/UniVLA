@@ -179,5 +179,10 @@ OXE_NAMED_MIXTURES: Dict[str, List[Tuple[str, float]]] = {
     "libero_combined": [
         ("libero_combined", 1.0),
     ],
+
+    # === WISER Panda Dataset (converted from LeRobot) ===
+    "wiser_panda": [
+        ("maniskill_dataset_converted_externally_to_rlds", 1.0),
+    ],
 }
 # fmt: on

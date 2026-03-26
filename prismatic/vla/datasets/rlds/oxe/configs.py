@@ -273,14 +273,10 @@ OXE_DATASET_CONFIGS = {
             "secondary": None,
             "wrist": "wrist_image",
         },
-        "depth_obs_keys": {
-            "primary": "depth",
-            "secondary": None,
-            "wrist": "wrist_depth",
-        },
-        "state_obs_keys": ["tcp_pose", "gripper_state"],
-        "state_encoding": StateEncoding.POS_QUAT,
-        "action_encoding": ActionEncoding.EEF_POS,
+        "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
+        "state_obs_keys": ["joint_state", "gripper_state"],
+        "state_encoding": StateEncoding.JOINT,
+        "action_encoding": ActionEncoding.JOINT_POS,
     },
     "furniture_bench_dataset_converted_externally_to_rlds": {
         "image_obs_keys": {

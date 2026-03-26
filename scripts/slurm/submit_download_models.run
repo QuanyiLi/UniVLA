@@ -1,0 +1,38 @@
+#!/bin/bash
+#SBATCH --job-name=dl-univla
+#SBATCH --output=/home/lfeng/task_logs/%j.log
+#SBATCH --partition=h100
+#SBATCH --qos=vita
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=16
+#SBATCH --gpus-per-node=1
+#SBATCH --nodes=1
+#SBATCH --time=04:00:00
+#SBATCH --mem=20G
+
+# ---------------------------------------------------------------------------
+# Download UniVLA and LAM checkpoints from HuggingFace
+#
+# Usage:
+#   sbatch submit_download_models.run
+# ---------------------------------------------------------------------------
+
+# === Paths (EDIT THESE) ===
+MODEL_DIR=/work/vita/lanfeng/vlas
+
+# Download pretrained UniVLA-7B
+echo "=== Downloading UniVLA-7B ==="
+huggingface-cli download qwbu/univla-7b \
+    --local-dir "${MODEL_DIR}/univla-7b"
+
+# Download Latent Action Model (stage-1 + stage-2)
+echo "=== Downloading Latent Action Model ==="
+huggingface-cli download qwbu/univla-latent-action-model \
+    --local-dir "${MODEL_DIR}/univla-latent-action-model"
+
+echo "=== Done ==="
+echo "UniVLA-7B:  ${MODEL_DIR}/univla-7b"
+echo "LAM:        ${MODEL_DIR}/univla-latent-action-model"
+echo ""
+echo "Find the LAM stage-2 checkpoint with:"
+echo "  find ${MODEL_DIR}/univla-latent-action-model -name '*.ckpt' | grep stage"
