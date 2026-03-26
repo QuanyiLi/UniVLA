@@ -118,7 +118,7 @@ class FinetuneConfig:
     learning_rate: float = 3.5e-4                                   # Fine-tuning learning rate
     grad_accumulation_steps: int = 2                                # Gradient accumulation steps
     image_aug: bool = True                                          # Whether to train with image augmentations
-    shuffle_buffer_size: int = 16000                                # Dataloader shuffle buffer size (can reduce if OOM)
+    shuffle_buffer_size: int = 1000                                 # Dataloader shuffle buffer size (can reduce if OOM)
     save_latest_checkpoint_only: bool = True                        # Whether to save only one checkpoint per run
     # LAM setting
     codebook_size: int = 16
