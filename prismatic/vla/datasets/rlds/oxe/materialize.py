@@ -29,8 +29,8 @@ def make_oxe_dataset_kwargs(
 ) -> Dict[str, Any]:
     """Generates config (kwargs) for given dataset from Open-X Embodiment."""
     dataset_kwargs = deepcopy(OXE_DATASET_CONFIGS[dataset_name])
-    if dataset_kwargs["action_encoding"] not in [ActionEncoding.EEF_POS, ActionEncoding.EEF_R6]:
-        raise ValueError(f"Cannot load `{dataset_name}`; only EEF_POS & EEF_R6 actions supported!")
+    if dataset_kwargs["action_encoding"] not in [ActionEncoding.EEF_POS, ActionEncoding.EEF_R6, ActionEncoding.JOINT_POS]:
+        raise ValueError(f"Cannot load `{dataset_name}`; only EEF_POS, EEF_R6 & JOINT_POS actions supported!")
 
     # [Contract] For EEF_POS & EEF_R6 actions, only the last action dimension (gripper) is absolute!
     # Normalize all action dimensions *except* the gripper
@@ -40,6 +40,10 @@ def make_oxe_dataset_kwargs(
     elif dataset_kwargs["action_encoding"] is ActionEncoding.EEF_R6:
         dataset_kwargs["absolute_action_mask"] = [False] * 9 + [True]
         dataset_kwargs["action_normalization_mask"] = [True] * 9 + [False]
+    elif dataset_kwargs["action_encoding"] is ActionEncoding.JOINT_POS:
+        # Joint-position targets (7 arm) + gripper (1) = 8 dims; normalize all
+        dataset_kwargs["absolute_action_mask"] = [True] * 8
+        dataset_kwargs["action_normalization_mask"] = [True] * 8
     dataset_kwargs["action_proprio_normalization_type"] = action_proprio_normalization_type
 
     # Adjust Loaded Camera Views
