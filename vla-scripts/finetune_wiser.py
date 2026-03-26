@@ -19,7 +19,7 @@ from transformers import AutoModelForVision2Seq, AutoProcessor, BitsAndBytesConf
 from transformers import AutoConfig, AutoImageProcessor
 from transformers.modeling_outputs import CausalLMOutputWithPast
 
-import wandb
+# import wandb  # Disabled
 from prismatic.models.backbones.llm.prompting import PurePromptBuilder, VicunaV15ChatPromptBuilder
 from prismatic.util.data_utils import PaddedCollatorForActionPrediction_LIBERO
 from prismatic.vla.action_tokenizer import ActionTokenizer
@@ -138,8 +138,8 @@ class FinetuneConfig:
     use_quantization: bool = False                                  # Whether to 4-bit quantize VLA for LoRA fine-tuning
 
     # Tracking Parameters
-    wandb_project: str = "univla-finetune-wiser"                    # Name of W&B project to log to
-    wandb_entity: str = "opendrivelab"                              # Name of entity to log under
+    # wandb_project: str = "univla-finetune-wiser"                  # Disabled
+    # wandb_entity: str = "opendrivelab"                            # Disabled
     run_id_note: Optional[str] = None                               # Extra note for logging, Weights & Biases
 
 
@@ -289,8 +289,8 @@ def finetune(cfg: FinetuneConfig) -> None:
     )
 
     # Initialize Logging >> W&B
-    if distributed_state.is_main_process:
-        wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=f"ft+{exp_id}")
+    # if distributed_state.is_main_process:
+    #     wandb.init(entity=cfg.wandb_entity, project=cfg.wandb_project, name=f"ft+{exp_id}")
 
     # Deque to store recent train metrics (used for computing smoothened metrics for gradient accumulation)
     recent_losses = deque(maxlen=cfg.grad_accumulation_steps)
@@ -342,15 +342,13 @@ def finetune(cfg: FinetuneConfig) -> None:
 
             # Push Metrics to W&B (every 5 gradient steps)
             if distributed_state.is_main_process and gradient_step_idx % 5 == 0:
-                wandb.log(
-                    {
-                        "train_loss": smoothened_loss,
-                        "latent_action_accuracy": smoothened_action_accuracy,
-                        "action_loss": act_loss.item(),
-                        "action_loss_1step": loss_one_step.item(),
-                        "lr": optimizer.state_dict()['param_groups'][0]['lr'],
-                    },
-                    step=gradient_step_idx,
+                print(
+                    f"[Step {gradient_step_idx}] "
+                    f"loss={smoothened_loss:.4f} "
+                    f"act_loss={act_loss.item():.4f} "
+                    f"act_loss_1step={loss_one_step.item():.4f} "
+                    f"latent_acc={smoothened_action_accuracy:.4f} "
+                    f"lr={optimizer.state_dict()['param_groups'][0]['lr']:.6f}"
                 )
 
             # Optimizer Step

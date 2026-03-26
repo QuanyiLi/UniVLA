@@ -66,6 +66,4 @@ srun torchrun \
     --learning_rate ${LEARNING_RATE} \
     --window_size ${WINDOW_SIZE} \
     --lora_rank ${LORA_RANK} \
-    --image_aug true \
-    --wandb_project "univla-finetune-wiser" \
-    --wandb_entity "opendrivelab"
+    --image_aug true
