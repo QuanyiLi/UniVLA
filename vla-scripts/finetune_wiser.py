@@ -232,17 +232,32 @@ def finetune(cfg: FinetuneConfig) -> None:
 
     from latent_action_model.genie.modules.lam import ControllableDINOLatentActionModel
 
-    latent_action_model = ControllableDINOLatentActionModel(
-        in_dim=3,
-        model_dim=cfg.lam_model_dim,
-        latent_dim=cfg.lam_latent_dim,
-        num_latents=cfg.codebook_size,
-        patch_size=cfg.lam_patch_size,
-        enc_blocks=cfg.lam_enc_blocks,
-        dec_blocks=cfg.lam_dec_blocks,
-        num_heads=cfg.lam_num_heads,
-        dropout=0.,
-    )
+    # Only rank 0 downloads DINOv2 from torch hub; others wait then load from cache
+    if distributed_state.is_main_process:
+        latent_action_model = ControllableDINOLatentActionModel(
+            in_dim=3,
+            model_dim=cfg.lam_model_dim,
+            latent_dim=cfg.lam_latent_dim,
+            num_latents=cfg.codebook_size,
+            patch_size=cfg.lam_patch_size,
+            enc_blocks=cfg.lam_enc_blocks,
+            dec_blocks=cfg.lam_dec_blocks,
+            num_heads=cfg.lam_num_heads,
+            dropout=0.,
+        )
+    dist.barrier()
+    if not distributed_state.is_main_process:
+        latent_action_model = ControllableDINOLatentActionModel(
+            in_dim=3,
+            model_dim=cfg.lam_model_dim,
+            latent_dim=cfg.lam_latent_dim,
+            num_latents=cfg.codebook_size,
+            patch_size=cfg.lam_patch_size,
+            enc_blocks=cfg.lam_enc_blocks,
+            dec_blocks=cfg.lam_dec_blocks,
+            num_heads=cfg.lam_num_heads,
+            dropout=0.,
+        )
 
     lam_ckpt = torch.load(cfg.lam_path)['state_dict']
     new_ckpt = {}
