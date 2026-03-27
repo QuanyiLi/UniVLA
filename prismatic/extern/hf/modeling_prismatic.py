@@ -24,7 +24,7 @@ import torch
 import torch.nn as nn
 import transformers
 from timm.models.vision_transformer import LayerScale
-from transformers import AutoModelForCausalLM, PretrainedConfig, PreTrainedModel
+from transformers import AutoModelForCausalLM, GenerationMixin, PretrainedConfig, PreTrainedModel
 from transformers.modeling_outputs import ModelOutput
 
 from .configuration_prismatic import OpenVLAConfig, PrismaticConfig
@@ -210,7 +210,7 @@ class PrismaticPreTrainedModel(PreTrainedModel):
         return self.language_model._supports_sdpa
 
 
-class PrismaticForConditionalGeneration(PrismaticPreTrainedModel):
+class PrismaticForConditionalGeneration(PrismaticPreTrainedModel, GenerationMixin):
     def __init__(self, config: PrismaticConfig) -> None:
         super().__init__(config)
 
