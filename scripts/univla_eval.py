@@ -108,6 +108,7 @@ class UniVLAEvalConfig:
 
     # Output
     result_dir: str = "./univla_eval_result"
+    save_video: bool = False                 # Save rollout videos (indices_to_save=None if True)
 
     # Aggregation-only mode
     aggregate_only: bool = False
@@ -377,7 +378,7 @@ def run_eval(cfg: UniVLAEvalConfig) -> None:
                     round_to_collect=cfg.eval_rounds,
                     demo_saving_dir=subset_result_dir,
                     debug_mode=True,
-                    indices_to_save=[],
+                    indices_to_save=None if cfg.save_video else [],
                 )
             elapsed = time.perf_counter() - start_time
 

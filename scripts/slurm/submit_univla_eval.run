@@ -24,6 +24,7 @@ CHECKPOINT="/work/vita/lanfeng/vlas/exp_results/univla_finetune/univla-7b+wiser_
 ACTION_DECODER="${CHECKPOINT}/action_decoder-36000.pt"
 DATASET_NAME="maniskill_dataset_converted_externally_to_rlds"
 WINDOW_SIZE=20
+SAVE_VIDEO=false
 
 # Prevent SLURM's CUDA_VISIBLE_DEVICES from interfering with per-process GPU assignment
 unset CUDA_VISIBLE_DEVICES
@@ -44,6 +45,7 @@ for GPU_ID in 0 1 2 3; do
         --end_subset=$END \
         --split=both \
         --eval_rounds=1 \
+        --save_video=$SAVE_VIDEO \
         --result_dir=$RESULT_DIR \
         > "${RESULT_DIR}/gpu_${GPU_ID}.log" 2>&1 &
 
