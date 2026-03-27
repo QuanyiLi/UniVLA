@@ -274,6 +274,7 @@ def run_eval(cfg: UniVLAEvalConfig) -> None:
 
     # Device
     device = torch.device("cuda")
+    torch.backends.cudnn.enabled = False
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.allow_tf32 = True
     torch.backends.cuda.matmul.allow_tf32 = True
