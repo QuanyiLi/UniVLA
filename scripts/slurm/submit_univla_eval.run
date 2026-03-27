@@ -22,7 +22,7 @@ mkdir -p $RESULT_DIR
 # UniVLA-specific paths (EDIT THESE)
 CHECKPOINT="/work/vita/lanfeng/vlas/exp_results/univla_finetune"
 ACTION_DECODER="${CHECKPOINT}/action_decoder-40000.pt"
-DATASET_NAME="wiser_panda"
+DATASET_NAME="maniskill_dataset_converted_externally_to_rlds"
 WINDOW_SIZE=20
 
 # Launch 4 processes, one per GPU, each handling 6 subsets
