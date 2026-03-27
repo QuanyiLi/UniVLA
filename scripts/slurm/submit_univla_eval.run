@@ -1,23 +1,18 @@
 #!/bin/bash
 #SBATCH --job-name=univla_eval
-#SBATCH --output=/home/lfeng/task_logs/%A_%a.log
+#SBATCH --output=/home/lfeng/task_logs/%j.log
 #SBATCH --partition=h100
 #SBATCH --qos=vita
-#SBATCH --array=0-11
-#SBATCH --ntasks-per-node=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --cpus-per-task=8
-#SBATCH --gpus-per-node=1
+#SBATCH --gpus-per-node=4
 #SBATCH --nodes=1
 #SBATCH --time=12:00:00
 #SBATCH --mem=100G
 
 # ============================================================
 # Evaluate fine-tuned UniVLA model on all 24 subsets (train+test)
-# using 12 nodes (1 H100 each), 2 configs per node.
-#
-# Array index 0..11 → configs [2*i, 2*i+2)
-# After all array tasks finish, run aggregation separately:
-#   python univla_eval.py --aggregate_only=true --result_dir=<RESULT_DIR>
+# using 4 GPUs on 1 H100 node.
 # ============================================================
 
 SCRIPT_PATH="/work/vita/lanfeng/vlas/UniVLA/scripts/univla_eval.py"
@@ -30,22 +25,44 @@ ACTION_DECODER="${CHECKPOINT}/action_decoder-40000.pt"
 DATASET_NAME="maniskill_dataset_converted_externally_to_rlds"
 WINDOW_SIZE=20
 
-# Compute subset range from array task ID
-START=$((SLURM_ARRAY_TASK_ID * 2))
-END=$((START + 2))
+# Prevent SLURM's CUDA_VISIBLE_DEVICES from interfering with per-process GPU assignment
+unset CUDA_VISIBLE_DEVICES
 
-echo "Array task ${SLURM_ARRAY_TASK_ID}: evaluating configs ${START} to $((END - 1))"
+# Launch 4 processes, one per GPU, each handling 6 subsets
+# Stagger launches by 60s to avoid simultaneous model loading OOM / cuDNN init failure
+for GPU_ID in 0 1 2 3; do
+    START=$((GPU_ID * 6))
+    END=$(((GPU_ID + 1) * 6))
 
+    CUDA_VISIBLE_DEVICES=$GPU_ID python $SCRIPT_PATH \
+        --pretrained_checkpoint=$CHECKPOINT \
+        --action_decoder_path=$ACTION_DECODER \
+        --dataset_name=$DATASET_NAME \
+        --window_size=$WINDOW_SIZE \
+        --center_crop=true \
+        --start_subset=$START \
+        --end_subset=$END \
+        --split=both \
+        --eval_rounds=1 \
+        --result_dir=$RESULT_DIR \
+        > "${RESULT_DIR}/gpu_${GPU_ID}.log" 2>&1 &
+
+    echo "Launched GPU $GPU_ID: subsets $START to $((END - 1))"
+
+    # Wait before launching the next process so models load one at a time
+    if [ $GPU_ID -lt 3 ]; then
+        sleep 5
+    fi
+done
+
+echo "Waiting for all 4 GPU processes to finish..."
+wait
+echo "All rollouts complete."
+
+# Final aggregation
+echo "Running final aggregation..."
 python $SCRIPT_PATH \
-    --pretrained_checkpoint=$CHECKPOINT \
-    --action_decoder_path=$ACTION_DECODER \
-    --dataset_name=$DATASET_NAME \
-    --window_size=$WINDOW_SIZE \
-    --center_crop=true \
-    --start_subset=$START \
-    --end_subset=$END \
-    --split=both \
-    --eval_rounds=1 \
+    --aggregate_only=true \
     --result_dir=$RESULT_DIR
 
-echo "Array task ${SLURM_ARRAY_TASK_ID} done."
+echo "Done. Results in $RESULT_DIR"
