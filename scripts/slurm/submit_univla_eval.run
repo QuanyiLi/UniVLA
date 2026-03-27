@@ -23,7 +23,7 @@ mkdir -p $RESULT_DIR
 CHECKPOINT="/work/vita/lanfeng/vlas/exp_results/univla_finetune/univla-7b+wiser_panda+b8+lr-0.00035+lora-r64+dropout-0.0--image_aug=w-LowLevelDecoder-ws-20"
 ACTION_DECODER="${CHECKPOINT}/action_decoder-36000.pt"
 DATASET_NAME="maniskill_dataset_converted_externally_to_rlds"
-WINDOW_SIZE=20
+WINDOW_SIZE=40
 SAVE_VIDEO=false
 
 # Prevent SLURM's CUDA_VISIBLE_DEVICES from interfering with per-process GPU assignment
