@@ -26,10 +26,23 @@
 
 # === Paths (EDIT THESE) ===
 UNIVLA_ROOT=/work/vita/lanfeng/vlas/UniVLA
-VLA_PATH=/work/vita/lanfeng/vlas/univla-7b
 LAM_PATH=/work/vita/lanfeng/vlas/univla-latent-action-model/lam-stage-2.ckpt
 DATA_ROOT=/work/vita/lanfeng/vlas/wise_dataset_0.4.3/rlds_train
 RUN_ROOT=/work/vita/lanfeng/vlas/exp_results/univla_finetune
+
+# === Resume Configuration ===
+# Set RESUME_STEP=0 to train from scratch, or set to the step number to resume from.
+# When resuming, VLA_PATH points to the checkpoint dir (with merged LoRA weights).
+RESUME_STEP=8000
+RESUME_CHECKPOINT_DIR=/work/vita/lanfeng/vlas/exp_results/univla_finetune/univla-7b+wiser_panda+b8+lr-0.00035+lora-r64+dropout-0.0--image_aug=w-LowLevelDecoder-ws-40
+
+if [ "${RESUME_STEP}" -gt 0 ]; then
+    VLA_PATH="${RESUME_CHECKPOINT_DIR}"
+    RESUME_AD="${RESUME_CHECKPOINT_DIR}/action_decoder-${RESUME_STEP}.pt"
+else
+    VLA_PATH=/work/vita/lanfeng/vlas/univla-7b
+    RESUME_AD=""
+fi
 
 # === Training Hyperparameters ===
 BATCH_SIZE=4
@@ -66,4 +79,6 @@ srun torchrun \
     --learning_rate ${LEARNING_RATE} \
     --window_size ${WINDOW_SIZE} \
     --lora_rank ${LORA_RANK} \
-    --image_aug true
+    --image_aug true \
+    --resume_step ${RESUME_STEP} \
+    --resume_action_decoder "${RESUME_AD}"

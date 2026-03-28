@@ -137,6 +137,10 @@ class FinetuneConfig:
     lora_dropout: float = 0.0                                       # Dropout applied to LoRA weights
     use_quantization: bool = False                                  # Whether to 4-bit quantize VLA for LoRA fine-tuning
 
+    # Resume Training
+    resume_step: int = 0                                            # Step to resume from (0 = train from scratch)
+    resume_action_decoder: str = ""                                 # Path to action_decoder .pt file to resume from
+
     # Tracking Parameters
     # wandb_project: str = "univla-finetune-wiser"                  # Disabled
     # wandb_entity: str = "opendrivelab"                            # Disabled
@@ -205,6 +209,7 @@ def finetune(cfg: FinetuneConfig) -> None:
         vla = vla.to(device_id)
 
     # [LoRA] Wrap Model w/ PEFT `LoraConfig` >> by default we set `target_modules=all-linear`
+    # When resuming, the checkpoint already has LoRA merged, so we re-apply LoRA from scratch
     if cfg.use_lora:
         lora_config = LoraConfig(
             r=cfg.lora_rank,
@@ -220,6 +225,13 @@ def finetune(cfg: FinetuneConfig) -> None:
     action_tokenizer = ActionTokenizer(processor.tokenizer)
 
     wrapped_model = Wrapped_Model(vla=vla, freeze_vla=cfg.freeze_vla, window_size=cfg.window_size).to(device_id)
+
+    # [Resume] Load action decoder weights if resuming from a checkpoint
+    if cfg.resume_step > 0 and cfg.resume_action_decoder:
+        print(f"[Resume] Loading action decoder from: {cfg.resume_action_decoder}")
+        ad_state = torch.load(cfg.resume_action_decoder, map_location=f"cuda:{device_id}")
+        wrapped_model.action_decoder.load_state_dict(ad_state)
+        print(f"[Resume] Action decoder loaded. Will skip to step {cfg.resume_step}.")
 
     trainable_total_params = sum(p.numel() for p in wrapped_model.parameters() if p.requires_grad)
     print('Total Trainable Params: ', trainable_total_params)
@@ -312,11 +324,20 @@ def finetune(cfg: FinetuneConfig) -> None:
     recent_losses = deque(maxlen=cfg.grad_accumulation_steps)
     recent_action_accuracies = deque(maxlen=cfg.grad_accumulation_steps)
 
+    # [Resume] Compute how many batches to skip
+    resume_batch_offset = cfg.resume_step * cfg.grad_accumulation_steps if cfg.resume_step > 0 else 0
+
     # Train!
-    with tqdm.tqdm(total=cfg.max_steps, leave=False) as progress:
+    with tqdm.tqdm(total=cfg.max_steps, initial=cfg.resume_step, leave=False) as progress:
         wrapped_model.train()
         optimizer.zero_grad()
         for batch_idx, batch in enumerate(dataloader):
+            # Fast-forward past already-trained batches
+            if batch_idx < resume_batch_offset:
+                if batch_idx % 500 == 0 and distributed_state.is_main_process:
+                    print(f"[Resume] Skipping batch {batch_idx}/{resume_batch_offset}...")
+                continue
+
             batch["input_ids"] = batch["input_ids"].to(device_id)
             batch["attention_mask"] = batch["attention_mask"].to(device_id)
             batch["labels"] = batch["labels"].to(device_id)
@@ -350,7 +371,7 @@ def finetune(cfg: FinetuneConfig) -> None:
             recent_action_accuracies.append(action_accuracy.item())
 
             # Compute gradient step index
-            gradient_step_idx = batch_idx // cfg.grad_accumulation_steps
+            gradient_step_idx = (batch_idx - resume_batch_offset) // cfg.grad_accumulation_steps + cfg.resume_step
 
             # Compute smoothened train metrics
             smoothened_loss = sum(recent_losses) / len(recent_losses)
